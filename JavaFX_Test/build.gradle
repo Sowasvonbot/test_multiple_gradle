@@ -3,17 +3,31 @@ plugins {
     id 'application'
     id 'org.openjfx.javafxplugin' version '0.0.10'
     id 'idea'
+    id 'org.beryx.jlink' version '2.24.1'
 }
 
 group 'de.tk-industries'
 version '1.0-SNAPSHOT'
 
 application {
-    mainClassName = "Main"
+    mainClassName = "client.Main"
+    mainModule = "JavaFX.Test.main"
 }
 
 repositories {
     mavenCentral()
+}
+
+jlink {
+    launcher {
+        name = 'wasauchimmer'
+    }
+}
+
+jar {
+    manifest {
+        attributes("Main-Class": mainClassName)
+    }
 }
 
 run {
