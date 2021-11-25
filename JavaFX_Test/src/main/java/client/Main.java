@@ -17,6 +17,9 @@ import javafx.stage.Stage;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.util.Set;
+
+import static java.util.Objects.isNull;
 
 public class Main extends Application {
 
@@ -38,17 +41,42 @@ public class Main extends Application {
 
         textFlow = new TextFlow();
 
-        new Thread(() -> {
-            BufferedReader reader = SocketConnection.getInstance().getReader();
-            while (true) {
+        Button connect = new Button("Connect");
+
+        TextField ipInput = new TextField("localhost");
+        pane.setTop(new HBox(ipInput,connect));
+
+        connect.setOnAction(event->{
+            Settings.getInstance().setSetting("server_ip", ipInput.getText());
+            ipInput.clear();
+            new Thread(() -> {
                 try {
-                    Text text = new Text(reader.readLine() + "\n");
-                    Platform.runLater(() -> textFlow.getChildren().add(text));
-                } catch (IOException e) {
-                    e.printStackTrace();
+                    BufferedReader reader = SocketConnection.getInstance().getReader();
+                    connect.setDisable(true);
+                    while (SocketConnection.isAlive()) {
+                        try {
+                            String textString = reader.readLine();
+                            if(isNull(textString)) {
+                                SocketConnection.disconnect();
+                                Platform.runLater(() -> textFlow.getChildren().add(new Text("Error connecting")));
+                            }
+                            else {
+                                Text text = new Text(textString + "\n");
+                                Platform.runLater(() -> textFlow.getChildren().add(text));
+                            }
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                            Platform.runLater(() -> textFlow.getChildren().add(new Text("Error connecting")));
+                        }
+                    }
+                } catch (RuntimeException e){
+                    Platform.runLater(() -> textFlow.getChildren().add(new Text("Error connecting")));
                 }
-            }
-        }).start();
+                connect.setDisable(false);
+            }).start();
+        });
+
+
 
 
         textFlow.prefHeight(100);
@@ -72,13 +100,11 @@ public class Main extends Application {
 
         Button changeTextButton = new Button("Change text");
         changeTextButton.setOnAction((event) -> {
-            sendMessage(textField.getText());
-            textField.clear();
+            sendMessage(textField);
         });
 
         textField.setOnAction(event -> {
-            sendMessage(textField.getText());
-            textField.clear();
+            sendMessage(textField);
         });
 
         pane.setBottom(new HBox(textField, changeTextButton));
@@ -86,13 +112,12 @@ public class Main extends Application {
         primaryStage.show();
     }
 
-    private void sendMessage(String text) {
-        BufferedWriter writer = SocketConnection.getInstance().getWriter();
-        try {
-            writer.write(text+"\n");
-            writer.flush();
-        } catch (IOException e) {
-            System.err.println(e.getMessage());
+    private void sendMessage(TextField textField){
+        try{
+            SocketConnection.getInstance().sendMessage(textField.getText());
+            textField.clear();
+        } catch (RuntimeException e){
+            textFlow.getChildren().add(new Text(e.getMessage()));
         }
     }
 

@@ -10,12 +10,18 @@ repositories {
     mavenCentral()
 }
 
-sourceCompatibility = "17"
+sourceCompatibility = "16"
 
 mainClassName = "Main"
 
 run {
     standardInput = System.in
+}
+
+jar {
+    manifest {
+        attributes("Main-Class": mainClassName)
+    }
 }
 
 dependencies {

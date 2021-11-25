@@ -3,7 +3,9 @@ import utility.Tuple;
 import java.io.*;
 import java.net.Socket;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static java.util.Objects.isNull;
 
@@ -21,11 +23,11 @@ public class SocketHolder {
     }
 
     public void remove(Socket socket) {
-        Tuple<BufferedReader,BufferedWriter> temp = readerWriterMap.remove(socket);
+        Tuple<BufferedReader, BufferedWriter> temp = readerWriterMap.remove(socket);
         try {
             temp.getX().close();
             temp.getY().close();
-        } catch (IOException e){
+        } catch (IOException e) {
             e.printStackTrace();
         }
         socketMap.remove(socket.getInetAddress().toString());
@@ -35,7 +37,7 @@ public class SocketHolder {
             e.printStackTrace();
         }
 
-        System.out.printf("Removed socket with address %s",socket.getInetAddress());
+        System.out.printf("Removed socket with address %s", socket.getInetAddress());
 
     }
 
@@ -59,14 +61,30 @@ public class SocketHolder {
     }
 
     public static void broadcast(String message) {
-        getInstance().readerWriterMap.values().forEach((tuple) -> {
-            try {
-                tuple.getY().write(message + "\n");
-                tuple.getY().flush();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
+        getInstance().socketMap.keySet().forEach(name -> sendMessageToUser(name, message));
+    }
+
+    public static void sendMessageToUser(Set<String> user, String message) {
+        for (String name : user) {
+            getInstance().sendMessageUser(name, message);
+        }
+    }
+
+    public static void sendMessageToUser(String user, String message) {
+        getInstance().sendMessageUser(user, message);
+    }
+
+    private void sendMessageUser(String user, String message) {
+        if (!socketMap.containsKey(user))
+            throw new IllegalArgumentException("User: " + user + " unknown");
+        BufferedWriter writer = this.readerWriterMap.get(socketMap.get(user)).getY();
+        try {
+            writer.write(message+"\n");
+            writer.flush();
+        } catch (IOException e) {
+            remove(socketMap.get(user));
+            throw new RuntimeException("User " + user + " has lost connection");
+        }
     }
 
 

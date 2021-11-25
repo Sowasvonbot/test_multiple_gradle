@@ -1,5 +1,7 @@
 package client;
 
+import org.json.JSONObject;
+
 import java.io.*;
 import java.net.Socket;
 
@@ -13,20 +15,27 @@ public class SocketConnection {
     private BufferedWriter writer;
     private BufferedReader reader;
 
-    private SocketConnection(){
+    private SocketConnection() throws RuntimeException{
         try {
-            socket = new Socket(Settings.getInstance().getSetting("server_ip"),50000);
+            socket = new Socket(Settings.getInstance().getSetting("server_ip"), 50000);
             writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
             reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (IOException e){
+            throw new RuntimeException("Error in connection");
         }
-
-
     }
 
-    public BufferedWriter getWriter() {
-        return writer;
+    public void sendJsonObject(JSONObject jsonObject) {
+        sendMessage(jsonObject.toString());
+    }
+
+    public void sendMessage(String text) {
+        try {
+            writer.write(text + "\n");
+            writer.flush();
+        } catch (IOException e) {
+            System.err.println(e.getMessage());
+        }
     }
 
     public BufferedReader getReader() {
@@ -37,5 +46,19 @@ public class SocketConnection {
         if (isNull(instance))
             instance = new SocketConnection();
         return instance;
+
+    }
+
+    public static void disconnect(){
+        try {
+            getInstance().socket.close();
+            instance = null;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static boolean isAlive(){
+        return !getInstance().socket.isClosed();
     }
 }
