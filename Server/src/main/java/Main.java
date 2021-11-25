@@ -12,8 +12,10 @@ public class Main {
             Scanner scanner = new Scanner(System.in);
 
             while (true) {
-                switch (scanner.next()) {
+                String test = scanner.next();
+                switch (test) {
                     case "stop", "quit" -> System.exit(0);
+                    default -> System.err.printf("Unknown command: %s",test);
                 }
             }
         }).start();
